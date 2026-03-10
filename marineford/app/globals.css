@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* ============================================
+   Design Tokens
+   ============================================ */
+@theme inline {
+  --color-primary: #4A90E2;
+  --color-primary-light: #5BA8F5;
+  --color-primary-dark: #3A7BD5;
+  --color-accent: #00D2FF;
+  --color-foreground: #1a1a2e;
+  --color-muted: #6B7280;
+  --color-bg-soft: #F7FAFF;
+  --color-bg-section: #EEF4FF;
+  --font-sans: var(--font-inter);
+}
+
+/* ============================================
+   Global Base
+   ============================================ */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   Custom Utilities (things Tailwind can't do)
+   ============================================ */
+.gradient-primary {
+  background: linear-gradient(135deg, #4A90E2 0%, #5BA8F5 50%, #6EC1F7 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #3A7BD5 0%, #4A90E2 40%, #5BA8F5 100%);
+}
+
+.gradient-logo {
+  background: linear-gradient(135deg, #4A90E2 0%, #00D2FF 100%);
+}
+
+.gradient-footer {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.gradient-divider {
+  background: linear-gradient(135deg, #4A90E2, #5BA8F5, #6EC1F7);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 24px rgba(74, 144, 226, 0.08);
+}
+
+.shadow-card-hover {
+  box-shadow: 0 12px 40px rgba(74, 144, 226, 0.18);
+}
+
+.shadow-btn {
+  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.3);
+}
+
+/* ============================================
+   Blob (decorative, needs absolute + blur)
+   ============================================ */
+.blob {
+  @apply absolute rounded-full pointer-events-none;
+  filter: blur(80px);
+  opacity: 0.12;
+  z-index: 0;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s ease-out both;
+}
