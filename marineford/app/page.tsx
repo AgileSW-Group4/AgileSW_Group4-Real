@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
+import { Sidebar } from "@/components/Sidebar";
 
 // โหลด MarineMap แบบ Dynamic (ไม่รันบน Server)
 const MarineMap = dynamic(() => import("@/components/MarineMap"), { 
@@ -20,7 +21,9 @@ export default function Home() {
 
       {/* Main Content: พื้นที่ที่เหลือจาก Navbar จะถูกเติมเต็มด้วยแผนที่ */}
       <div className="flex flex-1 overflow-hidden relative">
+        <Sidebar />
         <MarineMap />
+
       </div>
     </div>
   );
