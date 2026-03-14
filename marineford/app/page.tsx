@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { Sidebar } from "@/components/Sidebar";
 
 
 export default function Home() {
@@ -8,7 +9,7 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden relative">
-
+          <Sidebar/>
       </div>
     </div>
   );
