@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maritime Monitoring System",
+  title: "Marineford Monitoring System",
   description: "Real-time Fleet & Incident Tracking",
+  icons: {
+    icon: "/anchor.png", 
+  },
 };
 
 export default function RootLayout({

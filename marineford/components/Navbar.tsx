@@ -20,7 +20,7 @@ export function Navbar() {
                         className="text-lg font-bold leading-tight tracking-wide cursor-pointer hover:text-blue-100 transition-colors"
                         onClick={() => router.push("/")}
                     >
-                        Marine Monitoring System
+                        Marineford Monitoring System
                     </h1>
                     <p className="text-[11px] text-blue-200 font-medium tracking-wide">Real-time Fleet &amp; Incident Tracking</p>
                 </div>
