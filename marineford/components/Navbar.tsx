@@ -1,6 +1,6 @@
 "use client";
 
-import { Anchor, User, Plus } from "lucide-react";
+import { Anchor, User, Plus, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
@@ -27,13 +27,26 @@ export function Navbar() {
             </div>
 
             <div className="flex items-center gap-3">
+                {/* --- ปุ่ม: New Incident --- */}
                 <button
                     onClick={() => router.push("/create")}
-                    className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/20 hover:border-white/40 shadow-sm hover:shadow"
+                    className="flex items-center gap-1.5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-4 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/20 hover:border-white/40 shadow-sm active:scale-95"
                 >
                     <Plus className="w-3.5 h-3.5" />
                     New Incident
                 </button>
+
+                {/* --- ปุ่ม: Create Report (รูปแบบเดียวกัน) --- */}
+                <button
+                    onClick={() => router.push("/create")}
+                    className="flex items-center gap-1.5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-4 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/20 hover:border-white/40 shadow-sm active:scale-95"
+                >
+                    <FileText className="w-3.5 h-3.5" />
+                    Create Report
+                </button>
+
+                <div className="h-8 w-[1px] bg-white/20 mx-1 hidden sm:block" /> {/* เส้นคั่นเล็กน้อย */}
+
                 <div className="text-right hidden sm:block">
                     <p className="text-sm font-semibold leading-tight">Command Center</p>
                     <p className="text-[11px] text-blue-200">Administrator</p>
