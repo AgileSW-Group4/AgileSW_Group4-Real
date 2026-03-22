@@ -5,6 +5,15 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 're
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+type officer = {
+  id: string;
+  name: string;
+  rank: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+};
+
 // --- ส่วนที่ 1: Component แสดงพิกัดตามเมาส์ ---
 function MouseCoordinates() {
   const [position, setPosition] = useState({ lat: 13.550, lng: 100.580 });
@@ -35,7 +44,7 @@ function MouseCoordinates() {
 }
 
 // --- ส่วนที่ 2: ตัว Component แผนที่หลัก ---
-export default function MarineMap() {
+export default function MarineMap({ officers = [] }: { officers: officer[] }) {
   // ตั้งค่า Icon สำหรับ Marker
   const customIcon = L.icon({
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -43,6 +52,14 @@ export default function MarineMap() {
     iconSize: [25, 41],
     iconAnchor: [12, 41]
   });
+
+  const UserIcon = L.icon({
+      iconUrl: "/user.png",
+      iconSize: [25, 25],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32],
+  });
+  
 
   return (
     <div className="w-full h-full relative">
@@ -61,6 +78,23 @@ export default function MarineMap() {
 
         {/* เรียกใช้พิกัดตามเมาส์ที่นี่ */}
         <MouseCoordinates />
+
+        {/*  Officers จาก Supabase */}
+        {officers.map((officer) => (
+          <Marker
+            key={officer.id}
+            position={[officer.latitude, officer.longitude]}
+            icon={UserIcon}
+          >
+            <Popup>
+              <div className="text-sm">
+                <div className="font-bold">{officer.name}</div>
+                <div className="text-slate-500">{officer.rank}</div>
+                <div className="font-mono">{officer.status}</div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* Mock Data: จุดเกิดเหตุ */}
         <Marker position={[13.565, 100.595]} icon={customIcon}>
