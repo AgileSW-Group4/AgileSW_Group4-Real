@@ -1,9 +1,11 @@
-"use client"; // แนะนำให้ใส่ไว้ถ้ามีการใช้ Client features ในอนาคต
+"use client";
 
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/Navbar";
+import { Sidebar } from "@/components/Sidebar";
+import { Filters } from "@/components/Filters";
 
-// 1. Import แบบ Dynamic และปิด SSR
+// โหลด MarineMap แบบ Dynamic (ไม่รันบน Server)
 const MarineMap = dynamic(() => import("@/components/MarineMap"), { 
   ssr: false, 
   loading: () => (
@@ -15,13 +17,15 @@ const MarineMap = dynamic(() => import("@/components/MarineMap"), {
 
 export default function Home() {
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full">
       <Navbar />
+      <Filters/>
 
-      {/* Main Content */}
+      {/* Main Content: พื้นที่ที่เหลือจาก Navbar จะถูกเติมเต็มด้วยแผนที่ */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* 2. นำ Component แผนที่มาวางตรงนี้ */}
+        <Sidebar />
         <MarineMap />
+
       </div>
     </div>
   );
