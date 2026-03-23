@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // เพิ่ม useEffect สำหรับเช็คเน็ต
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { 
   ArrowLeft, MapPin, Clock, ShieldAlert, 
-  FileText, Camera, Send, Anchor 
+  FileText, Camera, Send, Anchor, WifiOff // เพิ่ม WifiOff สำหรับแสดงสถานะ
 } from "lucide-react";
 
 export default function CreateReportPage() {
@@ -14,15 +14,55 @@ export default function CreateReportPage() {
     // priority state: toggle for visual feedback
     const [priority, setPriority] = useState('normal'); 
     const [loading, setLoading] = useState(false);
+    
+    // --- ส่วนที่เพิ่ม: State สำหรับเช็คสัญญาณอินเทอร์เน็ต ---
+    const [isOnline, setIsOnline] = useState(true);
+
+    useEffect(() => {
+        // อัปเดตสถานะออนไลน์ปัจจุบัน
+        setIsOnline(navigator.onLine);
+        const goOnline = () => setIsOnline(true);
+        const goOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', goOnline);
+        window.addEventListener('offline', goOffline);
+
+        return () => {
+            window.removeEventListener('online', goOnline);
+            window.removeEventListener('offline', goOffline);
+        };
+    }, []);
 
     // handles form submission with mock delay
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // api simulation
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // จำลองข้อมูลที่จะบันทึก
+        const reportData = {
+            id: `RPT-OFF-${Date.now()}`,
+            priority,
+            timestamp: new Date().toISOString(),
+            status: "Pending Sync",
+            isOffline: true
+        };
+
+        // --- ส่วนที่เพิ่ม: เงื่อนไขการตรวจสอบอินเทอร์เน็ต ---
+        if (!navigator.onLine) {
+            // กรณีไม่มีเน็ต: บันทึกลง Local Database (LocalStorage)
+            const offlineReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
+            offlineReports.push(reportData);
+            localStorage.setItem("offline_reports", JSON.stringify(offlineReports));
+            
+            alert("เนื่องจากไม่มีสัญญาณอินเทอร์เน็ต รายงานจะถูกเก็บไว้ในฐานข้อมูลชั่วคราวในเครื่อง");
+        } else {
+            // กรณีมีเน็ต: api simulation ปกติ
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        
         setLoading(false);
-        router.push("/"); 
+        // เปลี่ยนจาก router.push("/") เป็น "/reports" เพื่อไปยังหน้า Incident Logs ตามที่คุณแจ้ง
+        router.push("/reports"); 
     };
 
     return (
@@ -34,6 +74,14 @@ export default function CreateReportPage() {
             <main className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="max-w-3xl mx-auto pb-10">
                     
+                    {/* --- ส่วนที่เพิ่ม: แสดงแถบแจ้งเตือนเมื่อไม่มีอินเทอร์เน็ต (จะไม่รบกวน UI เดิม) --- */}
+                    {!isOnline && (
+                        <div className="mb-4 p-3 bg-amber-100 border border-amber-200 text-amber-800 rounded-xl flex items-center gap-2 text-sm font-medium animate-pulse">
+                            <WifiOff className="w-4 h-4" />
+                            ขณะนี้ไม่มีอินเทอร์เน็ต ข้อมูลจะถูกบันทึกลงในเครื่อง (Local Database)
+                        </div>
+                    )}
+
                     {/* Header: navigation and page title */}
                     <div className="flex items-center justify-between mb-8">
                         <button 
@@ -158,7 +206,11 @@ export default function CreateReportPage() {
                             className="w-full py-4 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded-2xl font-bold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                         >
                             <Send className="w-5 h-5" />
-                            {loading ? "Submitting Report..." : "Submit Incident Report"}
+                            {loading 
+                              ? "Submitting Report..." 
+                              : isOnline 
+                                ? "Submit Incident Report" 
+                                : "Save Offline Report"}
                         </button>
                     </form>
                 </div>
