@@ -1,54 +1,76 @@
-import React, { createContext, useState, ReactNode, Dispatch, SetStateAction } from 'react';
+"use client";
 
-// 1. Define interfaces for your data structures
-// Customize these based on your actual data
-interface Wallet {
+import React, { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
+
+
+interface Incident {
   id: string;
-  balance: number;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  risk_level: number;
+  status: 'กำลังดำเนินการ' | 'รอดำเนินการ' | 'เสร็จสิ้น';
+  responsible_unit: string;
+  vdo_url: string;
+  created_at: string;
+  updated_at: string;
 }
 
-interface Payment {
-  id: string;
-  amount: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface Transaction {
-  id: string;
-  date: string;
-  amount: number;
-}
-
-// 2. Define the shape of the Context
+// Define the shape of the Context
 interface MarineContextType {
-  user_Wallet: Wallet[];
-  setUserWallet: Dispatch<SetStateAction<Wallet[]>>;
-  userPaymet: Payment[];
+
+  useIncident: Incident[];
+  setIncident: Dispatch<SetStateAction<Incident[]>>;
 
 }
 
 
 export const MarineContext = createContext<MarineContextType | undefined>(undefined);
 
+// Safe hook — throws a clear error if used outside <MarineContextProvider>
+export const useMarineContext = (): MarineContextType => {
+  const ctx = React.useContext(MarineContext);
+  if (!ctx) throw new Error("useMarineContext must be used inside <MarineContextProvider>");
+  return ctx;
+};
+
 interface Props {
   children: ReactNode;
 }
 
 export const MarineContextProvider = ({ children }: Props) => {
-  const [user_Wallet, setUserWallet] = useState<Wallet[]>([]);
-  const [userPaymet, setUserPaymet] = useState<Payment[]>([]);
+  const [useIncident, setIncident] = useState<Incident[]>([]);
 
-
-  // 4. Wrap the state and setters in the value object
   const value: MarineContextType = {
-    user_Wallet,
-    setUserWallet,
-    userPaymet,
-  };
+    useIncident, setIncident
+  }
+
+  const Get_Incident = async () => {
+    try {
+      const res = await fetch('/api/getIncident', {
+        method: 'GET',
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        console.log("Fetch Incident Success:", json.data);
+        setIncident(json.data);
+      } else {
+        console.log("Fetch Incident failed:", json);
+        setIncident([]);
+      }
+    } catch (error) {
+      console.log("Fail to Fetch Incidents:", error);
+    };
+  }
+
+  useEffect(() => {
+
+    Get_Incident();
+    console.log(useIncident);
+
+  }, []);
+
 
   return (
     <MarineContext.Provider value={value}>
