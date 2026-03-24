@@ -14,6 +14,8 @@ export async function fetchFromSupabase(table, options = {}) {
       // ✅ Header อันที่ 2
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Prefer": "return=representation",
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
