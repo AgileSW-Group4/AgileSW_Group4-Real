@@ -10,7 +10,21 @@ import {
 
 export default function CreateReportPage() {
     const router = useRouter();
-    
+
+    const [formData, setFormData] = useState({
+     id: "",
+     title: "",
+     risk_level: "",
+     latitude: "",
+     longitude: "",
+     created_at: "",
+     description: "",
+     responsible_unit: "",
+     status: "รอดำเนินการ",
+    });
+
+
+  
     // priority state: toggle for visual feedback
     const [priority, setPriority] = useState('normal'); 
     const [loading, setLoading] = useState(false);
@@ -35,35 +49,53 @@ export default function CreateReportPage() {
 
     // handles form submission with mock delay
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-        // จำลองข้อมูลที่จะบันทึก
-        const reportData = {
-            id: `RPT-OFF-${Date.now()}`,
-            priority,
-            timestamp: new Date().toISOString(),
-            status: "Pending Sync",
-            isOffline: true
-        };
+  const payload = {
+  id: `INC${String(Math.floor(Math.random() * 9000) + 1000)}`,
+  title: formData.title,
+  description: formData.description,
+  latitude: formData.latitude ? parseFloat(formData.latitude) : 0,
+  longitude: formData.longitude ? parseFloat(formData.longitude) : 0,
+  risk_level: priority === "normal" ? 1 : priority === "urgent" ? 2 : 3,
+  status: formData.status,
+  responsible_unit: formData.responsible_unit || "ไม่ระบุ", // ← เพิ่ม
+  created_at: formData.created_at
+    ? new Date(formData.created_at).toISOString()
+    : new Date().toISOString(),
+};
 
-        // --- ส่วนที่เพิ่ม: เงื่อนไขการตรวจสอบอินเทอร์เน็ต ---
-        if (!navigator.onLine) {
-            // กรณีไม่มีเน็ต: บันทึกลง Local Database (LocalStorage)
-            const offlineReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
-            offlineReports.push(reportData);
-            localStorage.setItem("offline_reports", JSON.stringify(offlineReports));
-            
-            alert("เนื่องจากไม่มีสัญญาณอินเทอร์เน็ต รายงานจะถูกเก็บไว้ในฐานข้อมูลชั่วคราวในเครื่อง");
-        } else {
-            // กรณีมีเน็ต: api simulation ปกติ
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-        
-        setLoading(false);
-        // เปลี่ยนจาก router.push("/") เป็น "/reports" เพื่อไปยังหน้า Incident Logs ตามที่คุณแจ้ง
-        router.push("/reports"); 
-    };
+  if (!navigator.onLine) {
+    // เดิม — เก็บ offline ไว้ก่อน
+    const offlineReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
+    offlineReports.push(payload);
+    localStorage.setItem("offline_reports", JSON.stringify(offlineReports));
+    alert("ไม่มีสัญญาณ บันทึกลงเครื่องแล้ว");
+  } else {
+
+    console.log("payload:", payload);
+    // ✅ เปลี่ยนจาก simulation → POST จริง
+    const res = await fetch("/api/incidents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      alert("เกิดข้อผิดพลาด ไม่สามารถบันทึกได้");
+      setLoading(false);
+      return;
+    }
+
+    const result = await res.json();
+    console.log("POST result:", result);
+    alert("บันทึกสำเร็จ!");
+  }
+
+  setLoading(false);
+  router.push("/reports");
+};
 
     return (
         /* FIX: overflow-hidden on root and overflow-y-auto on main fixes scroll issues */
@@ -145,60 +177,113 @@ export default function CreateReportPage() {
 
                         {/* Incident Type selection */}
                         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-                                <Anchor className="w-4 h-4 text-[#1e40af]" /> Incident Category
-                            </h3>
-                            <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
-                                <option>Boat Accident / Collision</option>
-                                <option>Illegal Fishing / IUU</option>
-                                <option>Search and Rescue (SAR)</option>
-                                <option>Smuggling / Illegal Entry</option>
-                                <option>Marine Pollution / Oil Spill</option>
-                            </select>
-                        </section>
+  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+    <Anchor className="w-4 h-4 text-[#1e40af]" /> Incident Title
+  </h3>
+  <input
+    type="text"
+    placeholder="Enter incident title..."
+    value={formData.title}
+    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+  />
+</section>
 
                         {/* Geographic and Temporal data */}
-                        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-                                <MapPin className="w-4 h-4 text-[#1e40af]" /> Location & Time
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="relative group">
-                                    <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
-                                    <input 
-                                        type="text" 
-                                        placeholder="GPS Coordinates (Lat, Long) or Area Name" 
-                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                                    />
-                                </div>
-                                <div className="relative group">
-                                    <Clock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
-                                    <input 
-                                        type="datetime-local" 
-                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                                    />
-                                </div>
-                            </div>
-                        </section>
+                        {/* Geographic and Temporal data */}
+<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+    <MapPin className="w-4 h-4 text-[#1e40af]" /> Location & Time
+  </h3>
+  <div className="space-y-4">
+    
+    {/* แยก Lat / Lng */}
+    <div className="flex gap-3">
+      <div className="relative group flex-1">
+        <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+        <input
+          type="number"
+          placeholder="Latitude"
+          value={formData.latitude}
+          onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+        />
+      </div>
+      <div className="relative group flex-1">
+        <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+        <input
+          type="number"
+          placeholder="Longitude"
+          value={formData.longitude}
+          onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+        />
+      </div>
+    </div>
+
+    {/* Datetime */}
+    <div className="relative group">
+      <Clock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+      <input
+        type="datetime-local"
+        value={formData.created_at}
+        onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
+        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+      />
+    </div>
+
+  </div>
+</section>
 
                         {/* Detailed Description and File Upload */}
                         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-                                <FileText className="w-4 h-4 text-[#1e40af]" /> Detailed Information
-                            </h3>
-                            <textarea 
-                                rows={4} 
-                                placeholder="Describe the situation, vessel names, number of casualties, etc..." 
-                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-4" 
-                            />
-                            
-                            <label className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 hover:border-[#1e40af] transition-all cursor-pointer group">
-                                <Camera className="w-10 h-10 text-slate-300 group-hover:text-[#1e40af] mb-2" />
-                                <span className="text-sm text-slate-400 group-hover:text-slate-600 font-medium">Upload Scene Photo / Evidence</span>
-                                <input type="file" className="hidden" accept="image/*" />
-                            </label>
-                        </section>
+  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+    <FileText className="w-4 h-4 text-[#1e40af]" /> Detailed Information
+  </h3>
+  <textarea
+    rows={4}
+    placeholder="Describe the situation, vessel names, number of casualties, etc..."
+    value={formData.description}
+    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-4"
+  />
 
+  <label className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 hover:border-[#1e40af] transition-all cursor-pointer group">
+    <Camera className="w-10 h-10 text-slate-300 group-hover:text-[#1e40af] mb-2" />
+    <span className="text-sm text-slate-400 group-hover:text-slate-600 font-medium">Upload Scene Photo / Evidence</span>
+    <input type="file" className="hidden" accept="image/*" />
+  </label>
+</section>
+
+{/* responsible_unit */}
+<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+    <Anchor className="w-4 h-4 text-[#1e40af]" /> Responsible Unit
+  </h3>
+  <input
+    type="text"
+    placeholder="Enter responsible unit..."
+    value={formData.responsible_unit}
+    onChange={(e) => setFormData({ ...formData, responsible_unit: e.target.value })}
+    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+  />
+</section>
+
+{/* Status */}
+<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+    <ShieldAlert className="w-4 h-4 text-[#1e40af]" /> Status
+  </h3>
+  <select
+    value={formData.status}
+    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+  >
+    <option value="รอดำเนินการ">รอดำเนินการ</option>
+    <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+  </select>
+</section>
                         {/* Submit Button */}
                         <button 
                             type="submit"
