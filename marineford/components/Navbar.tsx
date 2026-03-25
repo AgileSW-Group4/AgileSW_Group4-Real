@@ -1,6 +1,7 @@
 "use client";
 
-import { Anchor, User, Plus, FileText, ClipboardList } from "lucide-react";
+// เพิ่ม Ship เข้ามาในรายการ import
+import { Anchor, User, Plus, FileText, ClipboardList, Ship } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
@@ -27,11 +28,17 @@ export function Navbar() {
                 </h1>
             </div>
 
-            {/* Middle/Right Section: 3 Identical Buttons */}
+            {/* Middle/Right Section: Navigation Buttons */}
             <div className="flex items-center gap-2">
                 <button onClick={() => router.push("/")} className={btnStyle}>
                     <Plus className="w-3.5 h-3.5" />
                     <span>New Incident</span>
+                </button>
+
+                {/* เพิ่มปุ่ม Boat Status ตรงนี้ */}
+                <button onClick={() => router.push("/boat-status")} className={btnStyle}>
+                    <Ship className="w-3.5 h-3.5" />
+                    <span>Boat Status</span>
                 </button>
 
                 <button onClick={() => router.push("/create")} className={btnStyle}>
@@ -44,7 +51,7 @@ export function Navbar() {
                     <span>View Logs</span>
                 </button>
 
-                {/* Profile Section: Name and Unit are back! */}
+                {/* Profile Section */}
                 <div className="flex items-center gap-3 ml-2 border-l border-white/20 pl-4">
                     <div className="text-right flex flex-col justify-center">
                         <p className="text-[11px] font-bold leading-tight uppercase tracking-wider">Commander</p>
