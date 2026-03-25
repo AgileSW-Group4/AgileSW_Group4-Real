@@ -30,7 +30,7 @@ export function Navbar() {
 
             {/* Middle/Right Section: Navigation Buttons */}
             <div className="flex items-center gap-2">
-                <button onClick={() => router.push("/")} className={btnStyle}>
+                <button onClick={() => router.push("/newIncident")} className={btnStyle}>
                     <Plus className="w-3.5 h-3.5" />
                     <span>New Incident</span>
                 </button>
