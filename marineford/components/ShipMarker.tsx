@@ -8,7 +8,7 @@ export type Ship = {
   id: string;
   name: string;
   status: "ACTIVE" | "IDLE" | "OFFLINE" | string;
-  speed: number;           // knots
+         // knots
   latitude: number;
   longitude: number;
   lastUpdate: string;      // ISO string or display string
@@ -100,7 +100,7 @@ function ShipPopup({ ship }: { ship: Ship }) {
             </span>
           ),
         },
-        { label: "Speed",       value: `${ship.speed} knots` },
+    
         { label: "Position",    value: `${ship.latitude.toFixed(4)}°, ${ship.longitude.toFixed(4)}°` },
         { label: "Last Update", value: formattedDate },
       ].map(({ label, value }) => (

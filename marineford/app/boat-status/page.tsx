@@ -1,26 +1,68 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 // สมมติว่าไฟล์ Navbar อยู่ที่นี่ หากยังไม่มีสามารถสร้างคอมโพเนนต์ง่ายๆ รอไว้ได้
 import { Navbar } from "@/components/Navbar"; 
 
-// --- ข้อมูลจำลองสำหรับกราฟ ---
-const chartData = [
-  { name: 'Ready (พร้อมใช้งาน)', value: 55, color: '#22c55e' },
-  { name: 'Critical (วิกฤต)', value: 15, color: '#ef4444' },
-  { name: 'Warning (เฝ้าระวัง)', value: 20, color: '#facc15' },
-  { name: 'N/A (ไม่มีข้อมูล)', value: 10, color: '#e5e7eb' },
-];
+const generateChartData = (
+  boats: Boat[],
+  type: "fuel" | "device" | "overall"
+) => {
+  const count = {
+    ready: 0,
+    warning: 0,
+    critical: 0,
+    none: 0,
+  };
 
-// --- ข้อมูลจำลองสำหรับตารางเรือ ---
-const boatData = [
-  { id: 'Boat 001', fuel: 'ready', equipment: 'ready', overall: 'ready' },
-  { id: 'Boat 002', fuel: 'warning', equipment: 'critical', overall: 'critical' },
-  { id: 'Boat 003', fuel: 'critical', equipment: 'warning', overall: 'critical' },
-  { id: 'Boat 004', fuel: 'ready', equipment: 'ready', overall: 'ready' },
-  { id: 'Boat 005', fuel: 'ready', equipment: 'ready', overall: 'none' },
-];
+  boats.forEach((boat) => {
+    let status = "none";
+
+    if (type === "fuel") {
+      status = getFuelStatus(boat.fuel_level);
+    } else if (type === "device") {
+      status = getDeviceStatus(boat.device_status);
+    } else if (type === "overall") {
+      status = getOverallStatus(boat.status_info);
+    }
+
+    count[status as keyof typeof count]++;
+  });
+
+  return [
+    { name: 'Ready (พร้อมใช้งาน)', value: count.ready, color: '#22c55e' },
+    { name: 'Warning (เฝ้าระวัง)', value: count.warning, color: '#facc15' },
+    { name: 'Critical (วิกฤต)', value: count.critical, color: '#ef4444' },
+    { name: 'N/A (ไม่มีข้อมูล)', value: count.none, color: '#e5e7eb' },
+  ];
+};
+
+type Boat = {
+  id: string;
+  name: string;
+  status_info: string;
+  device_status: string;
+  fuel_level: number;
+};
+
+const getDeviceStatus = (status: string) => {
+  if (status === "พร้อมใช้งาน") return "ready";
+  if (status === "มีบางอย่างเสียหาย") return "warning";
+  return "critical";
+};
+
+const getFuelStatus = (fuel: number) => {
+  if (fuel >= 50) return "ready";
+  if (fuel >= 20) return "warning";
+  return "critical";
+};
+
+const getOverallStatus = (info: string) => {
+  if (info === "พร้อมปฏิบัติการ" || info === "กำลังลาดตระเวน") return "ready";
+  if (info === "จอดซ่อมบำรุง") return "critical";
+  return "warning";
+};
 
 // --- คอมโพเนนต์จุดแสดงสถานะ ---
 const StatusDot = ({ status }: { status: string }) => {
@@ -60,15 +102,23 @@ const StatusLegend = () => (
 );
 
 export default function BoatStatusPage() {
+
+  const [boats, setBoats] = useState<Boat[]>([]);
+
+  useEffect(() => {
+    fetch("/api/boats")
+      .then((res) => res.json())
+      .then((json) => setBoats(json.data || []));
+  }, []);
   
   // ฟังก์ชันวาดกราฟวงกลม
-  const renderPie = (title: string) => (
+  const renderPie = (title: string, data: any[]) => (
     <div className="flex flex-col items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
       <div className="w-32 h-32">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie 
-              data={chartData} 
+              data={data} 
               innerRadius={30} // ปรับเป็น Donut Chart เพื่อความทันสมัย
               outerRadius={50} 
               dataKey="value" 
@@ -76,7 +126,7 @@ export default function BoatStatusPage() {
               endAngle={450}
               paddingAngle={2}
             >
-              {chartData.map((entry, index) => (
+              {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
               ))}
             </Pie>
@@ -105,9 +155,9 @@ export default function BoatStatusPage() {
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-            {renderPie("ความพร้อมน้ำมัน")}
-            {renderPie("ความพร้อมอุปกรณ์")}
-            {renderPie("ความพร้อมรวมกองเรือ")}
+            {renderPie("ความพร้อมน้ำมัน", generateChartData(boats, "fuel"))}
+            {renderPie("ความพร้อมอุปกรณ์", generateChartData(boats, "device"))}
+            {renderPie("ความพร้อมรวมกองเรือ", generateChartData(boats, "overall"))}
           </div>
 
           {/* Legend (คำอธิบายสี) */}
@@ -126,16 +176,16 @@ export default function BoatStatusPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {boatData.map((boat) => (
+                  {boats.map((boat) => (
                     <tr key={boat.id} className="hover:bg-blue-50/30 transition-colors group">
                       <td className="px-8 py-5">
                         <span className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                          {boat.id}
+                          {boat.name}
                         </span>
                       </td>
-                      <td className="px-6 py-5"><StatusDot status={boat.fuel} /></td>
-                      <td className="px-6 py-5"><StatusDot status={boat.equipment} /></td>
-                      <td className="px-6 py-5"><StatusDot status={boat.overall} /></td>
+                      <td className="px-6 py-5"><StatusDot status={getFuelStatus(boat.fuel_level)} /></td>
+                      <td className="px-6 py-5"><StatusDot status={getDeviceStatus(boat.device_status)} /></td>
+                      <td className="px-6 py-5"><StatusDot status={getOverallStatus(boat.status_info)} /></td>
                     </tr>
                   ))}
                 </tbody>

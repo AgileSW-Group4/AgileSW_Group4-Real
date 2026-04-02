@@ -94,8 +94,12 @@ export default function MarineMap({
         <MouseCoordinates />
 
         {/* ── Officers ─────────────────────────────────────────── */}
-        {officers.map((o) => (
-          <Marker key={o.id} position={[o.latitude, o.longitude]} icon={userIcon}>
+        {officers.map((o, i) => (
+            <Marker
+              key={`${o.id}-${i}`}
+              position={[o.latitude, o.longitude]}
+              icon={userIcon}
+            >
             <Popup>
               <div className="text-sm">
                 <div className="font-bold">{o.name}</div>
