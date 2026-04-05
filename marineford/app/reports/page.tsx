@@ -18,8 +18,8 @@ type Incident = {
 };
 
 const riskMap: Record<number, { label: string; style: string }> = {
-  1: { label: "Normal",   style: "bg-green-100 text-green-700 border-green-200" },
-  2: { label: "Urgent",   style: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  1: { label: "Normal", style: "bg-green-100 text-green-700 border-green-200" },
+  2: { label: "Urgent", style: "bg-yellow-100 text-yellow-700 border-yellow-200" },
   3: { label: "Critical", style: "bg-red-100 text-red-700 border-red-200" },
 };
 
@@ -38,8 +38,10 @@ export default function ReportsPage() {
 
   const filtered = incidents.filter((inc) =>
     inc.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inc.responsible_unit.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    inc.responsible_unit.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inc.title.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
 
   // ลบ incident
   const handleDelete = async (id: string) => {
@@ -85,7 +87,7 @@ export default function ReportsPage() {
 
               return (
                 <div key={inc.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all">
-                  
+
                   {/* Main Row */}
                   <div className="flex flex-col md:flex-row justify-between gap-4 p-5">
                     <div className="flex gap-4">
