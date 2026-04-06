@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react"; // เพิ่ม useEffect สำหรับเช็คเน็ต
+import { supabase } from "../../lib/supabase";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { 
   ArrowLeft, MapPin, Clock, ShieldAlert, 
-  FileText, Camera, Send, Anchor, WifiOff // เพิ่ม WifiOff สำหรับแสดงสถานะ
+  FileText, Camera, Send, Anchor, WifiOff
 } from "lucide-react";
 
 export default function CreateReportPage() {
@@ -23,17 +24,50 @@ export default function CreateReportPage() {
      status: "รอดำเนินการ",
     });
 
-
-  
-    // priority state: toggle for visual feedback
+    const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+    const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+    const [uploading, setUploading] = useState(false);
     const [priority, setPriority] = useState('normal'); 
     const [loading, setLoading] = useState(false);
-    
-    // --- ส่วนที่เพิ่ม: State สำหรับเช็คสัญญาณอินเทอร์เน็ต ---
     const [isOnline, setIsOnline] = useState(true);
 
+    // ✅ handleMediaUpload: รองรับทั้ง image และ video
+    const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // เช็ค file size — วิดีโอจำกัด 50MB, รูปจำกัด 10MB
+      const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert(file.type.startsWith('video/') ? "วิดีโอต้องไม่เกิน 50MB" : "รูปต้องไม่เกิน 10MB");
+        return;
+      }
+
+      const type = file.type.startsWith('video/') ? 'video' : 'image';
+      setMediaType(type);
+      setUploading(true);
+
+      const fileName = `${Date.now()}-${file.name}`;
+
+      const { error } = await supabase.storage
+        .from("incident-images")
+        .upload(fileName, file);
+
+      if (error) {
+        alert("อัปโหลดไม่สำเร็จ");
+        setUploading(false);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("incident-images")
+        .getPublicUrl(fileName);
+
+      setMediaUrl(data.publicUrl);
+      setUploading(false);
+    };
+
     useEffect(() => {
-        // อัปเดตสถานะออนไลน์ปัจจุบัน
         setIsOnline(navigator.onLine);
         const goOnline = () => setIsOnline(true);
         const goOffline = () => setIsOnline(false);
@@ -47,66 +81,60 @@ export default function CreateReportPage() {
         };
     }, []);
 
-    // handles form submission with mock delay
     const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+      e.preventDefault();
+      setLoading(true);
 
-  const payload = {
-  id: `INC${String(Math.floor(Math.random() * 9000) + 1000)}`,
-  title: formData.title,
-  description: formData.description,
-  latitude: formData.latitude ? parseFloat(formData.latitude) : 0,
-  longitude: formData.longitude ? parseFloat(formData.longitude) : 0,
-  risk_level: priority === "normal" ? 1 : priority === "urgent" ? 2 : 3,
-  status: formData.status,
-  responsible_unit: formData.responsible_unit || "ไม่ระบุ", // ← เพิ่ม
-  created_at: formData.created_at
-    ? new Date(formData.created_at).toISOString()
-    : new Date().toISOString(),
-};
+      const payload = {
+        id: `INC${String(Math.floor(Math.random() * 9000) + 1000)}`,
+        title: formData.title,
+        description: formData.description,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : 0,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : 0,
+        risk_level: priority === "normal" ? 1 : priority === "urgent" ? 2 : 3,
+        status: formData.status,
+        responsible_unit: formData.responsible_unit || "ไม่ระบุ",
+        created_at: formData.created_at
+          ? new Date(formData.created_at).toISOString()
+          : new Date().toISOString(),
+        image_url: mediaUrl || null,
+      };
 
-  if (!navigator.onLine) {
-    // เดิม — เก็บ offline ไว้ก่อน
-    const offlineReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
-    offlineReports.push(payload);
-    localStorage.setItem("offline_reports", JSON.stringify(offlineReports));
-    alert("ไม่มีสัญญาณ บันทึกลงเครื่องแล้ว");
-  } else {
+      if (!navigator.onLine) {
+        const offlineReports = JSON.parse(localStorage.getItem("offline_reports") || "[]");
+        offlineReports.push(payload);
+        localStorage.setItem("offline_reports", JSON.stringify(offlineReports));
+        alert("ไม่มีสัญญาณ บันทึกลงเครื่องแล้ว");
+      } else {
+        console.log("payload:", payload);
+        const res = await fetch("/api/incidents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-    console.log("payload:", payload);
-    // ✅ เปลี่ยนจาก simulation → POST จริง
-    const res = await fetch("/api/incidents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+        if (!res.ok) {
+          alert("เกิดข้อผิดพลาด ไม่สามารถบันทึกได้");
+          setLoading(false);
+          return;
+        }
 
-    if (!res.ok) {
-      alert("เกิดข้อผิดพลาด ไม่สามารถบันทึกได้");
+        const result = await res.json();
+        console.log("POST result:", result);
+        alert("บันทึกสำเร็จ!");
+      }
+
       setLoading(false);
-      return;
-    }
-
-    const result = await res.json();
-    console.log("POST result:", result);
-    alert("บันทึกสำเร็จ!");
-  }
-
-  setLoading(false);
-  router.push("/reports");
-};
+      router.push("/reports");
+    };
 
     return (
-        /* FIX: overflow-hidden on root and overflow-y-auto on main fixes scroll issues */
         <div className="flex flex-col h-screen bg-slate-50 text-slate-900 overflow-hidden">
             <Navbar />
 
-            {/* Scrollable content area */}
             <main className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="max-w-3xl mx-auto pb-10">
                     
-                    {/* --- ส่วนที่เพิ่ม: แสดงแถบแจ้งเตือนเมื่อไม่มีอินเทอร์เน็ต (จะไม่รบกวน UI เดิม) --- */}
                     {!isOnline && (
                         <div className="mb-4 p-3 bg-amber-100 border border-amber-200 text-amber-800 rounded-xl flex items-center gap-2 text-sm font-medium animate-pulse">
                             <WifiOff className="w-4 h-4" />
@@ -114,7 +142,6 @@ export default function CreateReportPage() {
                         </div>
                     )}
 
-                    {/* Header: navigation and page title */}
                     <div className="flex items-center justify-between mb-8">
                         <button 
                             type="button"
@@ -133,7 +160,7 @@ export default function CreateReportPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         
-                        {/* Priority selection: changes color and scale on active */}
+                        {/* Priority Level */}
                         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                             <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
                                 <ShieldAlert className="w-4 h-4 text-[#1e40af]" /> Priority Level
@@ -175,115 +202,135 @@ export default function CreateReportPage() {
                             </div>
                         </section>
 
-                        {/* Incident Type selection */}
+                        {/* Incident Title */}
                         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-    <Anchor className="w-4 h-4 text-[#1e40af]" /> Incident Title
-  </h3>
-  <input
-    type="text"
-    placeholder="Enter incident title..."
-    value={formData.title}
-    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-  />
-</section>
+                          <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+                            <Anchor className="w-4 h-4 text-[#1e40af]" /> Incident Title
+                          </h3>
+                          <input
+                            type="text"
+                            placeholder="Enter incident title..."
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                          />
+                        </section>
 
-                        {/* Geographic and Temporal data */}
-                        {/* Geographic and Temporal data */}
-<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-    <MapPin className="w-4 h-4 text-[#1e40af]" /> Location & Time
-  </h3>
-  <div className="space-y-4">
-    
-    {/* แยก Lat / Lng */}
-    <div className="flex gap-3">
-      <div className="relative group flex-1">
-        <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
-        <input
-          type="number"
-          placeholder="Latitude"
-          value={formData.latitude}
-          onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-        />
-      </div>
-      <div className="relative group flex-1">
-        <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
-        <input
-          type="number"
-          placeholder="Longitude"
-          value={formData.longitude}
-          onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-        />
-      </div>
-    </div>
-
-    {/* Datetime */}
-    <div className="relative group">
-      <Clock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
-      <input
-        type="datetime-local"
-        value={formData.created_at}
-        onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
-        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-      />
-    </div>
-
-  </div>
-</section>
-
-                        {/* Detailed Description and File Upload */}
+                        {/* Location & Time */}
                         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-    <FileText className="w-4 h-4 text-[#1e40af]" /> Detailed Information
-  </h3>
-  <textarea
-    rows={4}
-    placeholder="Describe the situation, vessel names, number of casualties, etc..."
-    value={formData.description}
-    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-4"
-  />
+                          <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+                            <MapPin className="w-4 h-4 text-[#1e40af]" /> Location & Time
+                          </h3>
+                          <div className="space-y-4">
+                            <div className="flex gap-3">
+                              <div className="relative group flex-1">
+                                <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+                                <input
+                                  type="number"
+                                  placeholder="Latitude"
+                                  value={formData.latitude}
+                                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                              </div>
+                              <div className="relative group flex-1">
+                                <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+                                <input
+                                  type="number"
+                                  placeholder="Longitude"
+                                  value={formData.longitude}
+                                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                              </div>
+                            </div>
+                            <div className="relative group">
+                              <Clock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-[#1e40af]" />
+                              <input
+                                type="datetime-local"
+                                value={formData.created_at}
+                                onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                              />
+                            </div>
+                          </div>
+                        </section>
 
-  <label className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 hover:border-[#1e40af] transition-all cursor-pointer group">
-    <Camera className="w-10 h-10 text-slate-300 group-hover:text-[#1e40af] mb-2" />
-    <span className="text-sm text-slate-400 group-hover:text-slate-600 font-medium">Upload Scene Photo / Evidence</span>
-    <input type="file" className="hidden" accept="image/*" />
-  </label>
-</section>
+                        {/* Detailed Information + Media Upload */}
+                        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                          <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+                            <FileText className="w-4 h-4 text-[#1e40af]" /> Detailed Information
+                          </h3>
+                          <textarea
+                            rows={4}
+                            placeholder="Describe the situation, vessel names, number of casualties, etc..."
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all mb-4"
+                          />
 
-{/* responsible_unit */}
-<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-    <Anchor className="w-4 h-4 text-[#1e40af]" /> Responsible Unit
-  </h3>
-  <input
-    type="text"
-    placeholder="Enter responsible unit..."
-    value={formData.responsible_unit}
-    onChange={(e) => setFormData({ ...formData, responsible_unit: e.target.value })}
-    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-  />
-</section>
+                          {/* ✅ Media Upload: รองรับรูปและวิดีโอ */}
+                          <label className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50 hover:border-[#1e40af] transition-all cursor-pointer group">
+                            {mediaUrl ? (
+                              mediaType === 'video' ? (
+                                <video
+                                  src={mediaUrl}
+                                  controls
+                                  className="h-48 w-full object-cover rounded-lg"
+                                />
+                              ) : (
+                                <img
+                                  src={mediaUrl}
+                                  alt="Evidence"
+                                  className="h-48 w-full object-cover rounded-lg"
+                                />
+                              )
+                            ) : (
+                              <>
+                                <Camera className="w-10 h-10 text-slate-300 group-hover:text-[#1e40af] mb-2" />
+                                <span className="text-sm text-slate-400 group-hover:text-slate-600 font-medium">
+                                  {uploading ? "กำลังอัปโหลด..." : "Upload Photo or Video"}
+                                </span>
+                                <span className="text-xs text-slate-300 mt-1">
+                                  รูป (สูงสุด 10MB) / วิดีโอ (สูงสุด 50MB)
+                                </span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*,video/*"
+                              onChange={handleMediaUpload}
+                              disabled={uploading}
+                            />
+                          </label>
 
-{/* Status */}
-<section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-  <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
-    <ShieldAlert className="w-4 h-4 text-[#1e40af]" /> Status
-  </h3>
-  <select
-    value={formData.status}
-    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
-  >
-    <option value="รอดำเนินการ">รอดำเนินการ</option>
-    <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
-  </select>
-</section>
+                          {/* ปุ่มลบไฟล์ที่อัปโหลดแล้ว */}
+                          {mediaUrl && (
+                            <button
+                              type="button"
+                              onClick={() => { setMediaUrl(null); setMediaType(null); }}
+                              className="mt-2 text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+                            >
+                              ✕ ลบไฟล์และอัปโหลดใหม่
+                            </button>
+                          )}
+                        </section>
+
+                        {/* Responsible Unit */}
+                        <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                          <h3 className="text-slate-700 font-bold mb-4 flex items-center gap-2 text-sm uppercase font-mono">
+                            <Anchor className="w-4 h-4 text-[#1e40af]" /> Responsible Unit
+                          </h3>
+                          <input
+                            type="text"
+                            placeholder="Enter responsible unit..."
+                            value={formData.responsible_unit}
+                            onChange={(e) => setFormData({ ...formData, responsible_unit: e.target.value })}
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                          />
+                        </section>
+
                         {/* Submit Button */}
                         <button 
                             type="submit"

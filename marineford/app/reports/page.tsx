@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { FileText, Search, ArrowLeft, Clock, MapPin, AlertCircle, ChevronRight, Trash2, ChevronDown } from "lucide-react";
+import { FileText, Search, ArrowLeft, Clock, MapPin, AlertCircle, ChevronRight, Trash2, ChevronDown, Camera, Download } from "lucide-react";
+
 
 type Incident = {
   id: string;
@@ -15,6 +16,7 @@ type Incident = {
   created_at: string;
   responsible_unit: string;
   description: string;
+  image_url?: string;
 };
 
 const riskMap: Record<number, { label: string; style: string }> = {
@@ -27,8 +29,8 @@ export default function ReportsPage() {
   const router = useRouter();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);       // ← expand description
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null); // ← confirm delete
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/incidents")
@@ -41,13 +43,75 @@ export default function ReportsPage() {
     inc.responsible_unit.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ลบ incident
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/incidents?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setIncidents((prev) => prev.filter((inc) => inc.id !== id));
     }
     setDeleteTargetId(null);
+  };
+
+  // Export single incident as PDF via browser print
+  const handleExportPdf = (inc: Incident) => {
+    const risk = riskMap[inc.risk_level] || riskMap[1];
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Incident Report - ${inc.id}</title>
+          <style>
+            body { font-family: sans-serif; padding: 40px; color: #1e293b; }
+            h1 { font-size: 22px; margin-bottom: 4px; }
+            .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+            .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: bold; border: 1px solid; }
+            .row { display: flex; gap: 12px; margin-bottom: 8px; font-size: 14px; }
+            .label { color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+            .section { margin-bottom: 20px; }
+            .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+            img { max-width: 100%; border-radius: 12px; margin-top: 8px; }
+            @media print { body { padding: 20px; } }
+          </style>
+        </head>
+        <body>
+          <div class="section">
+            <div class="meta">Incident ID: <strong>${inc.id}</strong></div>
+            <h1>${inc.title}</h1>
+            <span class="badge">${risk.label}</span>
+          </div>
+          <hr class="divider" />
+          <div class="section">
+            <div class="row"><span class="label">Status</span></div>
+            <div>${inc.status}</div>
+          </div>
+          <div class="section">
+            <div class="label">Responsible Unit</div>
+            <div>${inc.responsible_unit}</div>
+          </div>
+          <div class="section">
+            <div class="label">Date / Time</div>
+            <div>${new Date(inc.created_at).toLocaleString("th-TH")}</div>
+          </div>
+          <div class="section">
+            <div class="label">Location</div>
+            <div>${inc.latitude}, ${inc.longitude}</div>
+          </div>
+          <hr class="divider" />
+          <div class="section">
+            <div class="label">Description</div>
+            <p>${inc.description || "ไม่มีรายละเอียดเพิ่มเติม"}</p>
+          </div>
+          ${inc.image_url && !/\.(mp4|mov|webm|avi)(\?|$)/i.test(inc.image_url)
+            ? `<div class="section"><div class="label">Evidence</div><img src="${inc.image_url}" /></div>`
+            : ""}
+          <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -127,6 +191,15 @@ export default function ReportsPage() {
                         <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                       </button>
 
+                      {/* ปุ่ม Export PDF */}
+                      <button
+                        onClick={() => handleExportPdf(inc)}
+                        className="p-2 rounded-xl hover:bg-blue-50 text-slate-300 hover:text-blue-500 transition-all"
+                        title="Export as PDF"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+
                       {/* ปุ่มลบ */}
                       <button
                         onClick={() => setDeleteTargetId(inc.id)}
@@ -139,12 +212,47 @@ export default function ReportsPage() {
 
                   {/* Description Expand */}
                   {isExpanded && (
-                    <div className="px-5 pb-5 border-t border-slate-100 pt-4">
-                      <p className="text-sm text-slate-500 font-medium">
+                  <div className="px-6 pb-10 border-t border-slate-100 pt-6 bg-slate-50/30 rounded-b-2xl">
+                    
+                    <div className="mb-6">
+                      <h4 className="text-[10px] uppercase font-bold text-slate-400 mb-3 tracking-[0.2em]">
+                        Detailed Information
+                      </h4>
+                      <p className="text-base text-slate-600 leading-relaxed font-medium">
                         {inc.description || "ไม่มีรายละเอียดเพิ่มเติม"}
                       </p>
                     </div>
-                  )}
+
+                    <div className="border-t border-slate-200 mb-6" />
+
+                    <div className="flex justify-center pb-2">
+                      {inc.image_url ? (
+                        <div className="relative group max-w-sm w-full overflow-hidden rounded-2xl border-4 border-white shadow-lg shadow-slate-200/50 transition-all hover:shadow-xl p-2 bg-white">
+                          {/\.(mp4|mov|webm|avi)(\?|$)/i.test(inc.image_url) ? (
+                            <video
+                              src={inc.image_url}
+                              controls
+                              className="w-full h-64 object-cover rounded-xl"
+                            />
+                          ) : (
+                            <img 
+                              src={inc.image_url} 
+                              alt="Incident Evidence" 
+                              className="w-full h-64 object-cover rounded-xl hover:scale-105 transition-transform duration-700 cursor-pointer"
+                              onClick={() => window.open(inc.image_url, '_blank')}
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none rounded-2xl" />
+                        </div>
+                      ) : (
+                        <div className="max-w-sm w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                          <span className="text-xs font-semibold italic">No Evidence Image</span>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                )}
                 </div>
               );
             })}
