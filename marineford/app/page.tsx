@@ -5,10 +5,11 @@ import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { Filters } from "@/components/Filters";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // โหลด MarineMap แบบ Dynamic (ไม่รันบน Server)
-const MarineMap = dynamic<{ officers:any[] }> (() => import("@/components/MarineMap"), { 
-  ssr: false, 
+const MarineMap = dynamic<{ officers: any[] }>(() => import("@/components/MarineMap"), {
+  ssr: false,
   loading: () => (
     <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
       กำลังโหลดแผนที่...
@@ -17,26 +18,46 @@ const MarineMap = dynamic<{ officers:any[] }> (() => import("@/components/Marine
 });
 
 export default function Home() {
-  // database
+  const router = useRouter();
   const [officers, setOfficers] = useState([]);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
+    // Auth guard — redirect to login if not authenticated
+    const user = sessionStorage.getItem("marineford_user");
+    if (!user) {
+      router.replace("/login");
+    } else {
+      setAuthChecked(true);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!authChecked) return;
     fetch("/api/data")
       .then((res) => res.json())
       .then((json) => setOfficers(json.data));
-  }, []);
+  }, [authChecked]);
+
+  if (!authChecked) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full w-full">
       <Navbar />
-      <Filters/>
+      <Filters />
 
       {/* Main Content: พื้นที่ที่เหลือจาก Navbar จะถูกเติมเต็มด้วยแผนที่ */}
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar />
         <MarineMap officers={officers} />
-        
+
       </div>
     </div>
   );
- }
+}
