@@ -1,23 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  MapContainer, 
-  TileLayer, 
-  Polygon, 
-  useMapEvents, 
+import React, { useState, useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Polygon,
+  useMapEvents,
   LayersControl,
-  Marker 
+  Marker
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useMarineContext } from "@/app/context/marineContext";
+import IncidentMarker from "@/components/IncidentMarker";
+import ShipMarker, { Ship } from "@/components/ShipMarker";
 
 const WEATHER_API_KEY = "1726832e4269c6175ac3226ab85e71c3";
 
 //  ระบบ Beaufort Scale มาตรฐานสากล
 const getBeaufortData = (speedKmh: number) => {
-  if (speedKmh < 1)  return { force: 0, desc: "ทะเลสงบ (Calm)", type: "safe" };
-  if (speedKmh <= 5)  return { force: 1, desc: "ลมอ่อนมาก (Light air)", type: "safe" };
+  if (speedKmh < 1) return { force: 0, desc: "ทะเลสงบ (Calm)", type: "safe" };
+  if (speedKmh <= 5) return { force: 1, desc: "ลมอ่อนมาก (Light air)", type: "safe" };
   if (speedKmh <= 11) return { force: 2, desc: "ลมอ่อน (Light breeze)", type: "safe" };
   if (speedKmh <= 19) return { force: 3, desc: "ลมโชย (Gentle breeze)", type: "safe" };
   if (speedKmh <= 28) return { force: 4, desc: "ลมปานกลาง (Moderate)", type: "safe" };
@@ -44,30 +47,38 @@ const THAI_MARINE_ZONES = [
 const getVisualRotation = (deg: number) => (deg + 180) % 360;
 
 //  ฟังก์ชันสำหรับดักจับ Event บนแผนที่
-function MapEvents({ 
-  onLocationSelect, 
-  onMouseMove 
-}: { 
+function MapEvents({
+  onLocationSelect,
+  onMouseMove
+}: {
   onLocationSelect: (lat: number, lng: number) => void,
-  onMouseMove: (lat: number, lng: number) => void 
+  onMouseMove: (lat: number, lng: number) => void
 }) {
-  useMapEvents({ 
+  useMapEvents({
     click(e) { onLocationSelect(e.latlng.lat, e.latlng.lng); },
     mousemove(e) { onMouseMove(e.latlng.lat, e.latlng.lng); }
   });
   return null;
 }
 
-export default function MarineZoneMap() {
+interface Props {
+  officers: any[];
+  ships: Ship[];
+}
+
+export default function MarineZoneMap({ officers, ships }: Props) {
   const [selectedCoords, setSelectedCoords] = useState({ lat: 12.9, lng: 100.4 });
-  const [hoverCoords, setHoverCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [hoverCoords, setHoverCoords] = useState<{ lat: number, lng: number } | null>(null);
   const [selectedData, setSelectedData] = useState<any>(null);
   const [selectedLoading, setSelectedLoading] = useState(false);
   const [allZonesData, setAllZonesData] = useState<any[]>([]);
   const [scanLoading, setScanLoading] = useState(false);
-  
+
   //  State เก็บเวลานับถอยหลัง 10 นาที (600 วินาที)
   const [countdown, setCountdown] = useState(600);
+  const { useIncident } = useMarineContext();
+
+
 
   useEffect(() => {
     const fetchSelectedPoint = async () => {
@@ -80,7 +91,7 @@ export default function MarineZoneMap() {
         const mData = await mRes.json();
         const wData = await wRes.json();
         const windSpdKmh = (wData.wind?.speed || 0) * 3.6;
-        
+
         setSelectedData({
           zoneName: "CUSTOM POINT",
           wave: mData.current?.wave_height ?? null,
@@ -100,11 +111,11 @@ export default function MarineZoneMap() {
     let isScanning = false;
 
     const scanZones = async () => {
-      if (isScanning) return; 
+      if (isScanning) return;
       isScanning = true;
       setScanLoading(true);
       const scannedZones: any[] = [];
-      
+
       for (const zone of THAI_MARINE_ZONES) {
         try {
           const [mr, wr] = await Promise.all([
@@ -117,10 +128,10 @@ export default function MarineZoneMap() {
           const wsKmh = (wd.wind?.speed || 0) * 3.6;
           const bf = getBeaufortData(wsKmh);
 
-          scannedZones.push({ 
-            ...zone, 
-            waveHeight: wh, 
-            windSpeed: wsKmh, 
+          scannedZones.push({
+            ...zone,
+            waveHeight: wh,
+            windSpeed: wsKmh,
             windDeg: wd.wind?.deg || 0,
             beaufort: bf,
             isDanger: bf.type === 'danger' || bf.type === 'warning'
@@ -137,13 +148,13 @@ export default function MarineZoneMap() {
     const timerInterval = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          scanZones(); 
+          scanZones();
           return 600; // เซ็ตกลับไปที่ 10 นาที (600 วินาที)
         }
         return prev - 1;
       });
-    }, 1000); 
-    
+    }, 1000);
+
     return () => clearInterval(timerInterval);
   }, []);
 
@@ -197,27 +208,27 @@ export default function MarineZoneMap() {
           </LayersControl.Overlay>
         </LayersControl>
 
-        <MapEvents 
-          onLocationSelect={(lat, lng) => setSelectedCoords({ lat, lng })} 
+        <MapEvents
+          onLocationSelect={(lat, lng) => setSelectedCoords({ lat, lng })}
           onMouseMove={(lat, lng) => setHoverCoords({ lat, lng })}
         />
 
         {allZonesData.map((zone) => (
-          <div key={`zone-${zone.id}`}>
-            <Polygon 
-              positions={zone.coords as any} 
+          <React.Fragment key={`zone-${zone.id}`}>
+            <Polygon
+              positions={zone.coords as any}
               eventHandlers={{ click: () => handleZoneClick(zone) }}
-              pathOptions={{ 
-                color: zone.beaufort.type === 'danger' ? '#ef4444' : zone.beaufort.type === 'warning' ? '#f97316' : '#38bdf8', 
-                weight: zone.isDanger ? 3 : 1, 
-                fillOpacity: 0.05, 
+              pathOptions={{
+                color: zone.beaufort.type === 'danger' ? '#ef4444' : zone.beaufort.type === 'warning' ? '#f97316' : '#38bdf8',
+                weight: zone.isDanger ? 3 : 1,
+                fillOpacity: 0.05,
                 dashArray: zone.isDanger ? undefined : '4, 8',
                 className: zone.isDanger ? 'danger-polygon' : 'safe-polygon'
-              }} 
+              }}
             />
             {zone.isDanger && (
-              <Marker 
-                position={zone.center as any} 
+              <Marker
+                position={zone.center as any}
                 icon={L.divIcon({
                   className: '',
                   html: `<div style="transform: rotate(${getVisualRotation(zone.windDeg)}deg); color: ${zone.beaufort.type === 'danger' ? '#b91c1c' : '#c2410c'}; text-shadow: 0 0 5px #fff; font-size: 32px; font-weight: 900; line-height: 1; pointer-events: none;">↑</div>
@@ -229,12 +240,29 @@ export default function MarineZoneMap() {
                 })}
               />
             )}
-          </div>
+          </React.Fragment>
         ))}
+
+        {/* ── Incident Markers from context ── */}
+        {useIncident
+          .filter((inc) => inc.latitude && inc.longitude)
+          .map((inc) => (
+            <IncidentMarker key={inc.id} incident={inc} />
+          ))
+        }
+
+        {/* ── Ship Markers from props ── */}
+        {ships
+          .filter((s) => s.latitude && s.longitude)
+          .map((ship) => (
+            <ShipMarker key={ship.id} ship={ship} />
+          ))
+        }
       </MapContainer>
 
+
       {/* --- UI Overlays --- */}
-      
+
       {/*  พิกัดเมาส์มุมขวาล่าง */}
       <div className="absolute bottom-6 right-6 z-[1000] pointer-events-none">
         <div className="bg-slate-900/80 border border-slate-700 px-3 py-1.5 rounded-lg shadow-lg backdrop-blur-sm text-[10px] font-mono text-slate-400 tracking-wider flex gap-3 items-center">
@@ -251,13 +279,13 @@ export default function MarineZoneMap() {
       </div>
 
       <div className="absolute top-6 left-6 z-[1000] space-y-4 pointer-events-none">
-        
+
         {/* Status Badge พร้อม Countdown แบบ MM:SS */}
         <div className="bg-slate-900/90 border border-slate-700 px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 backdrop-blur-sm pointer-events-auto">
           <div className={`w-2 h-2 rounded-full ${scanLoading ? 'bg-amber-500 animate-pulse' : (dangerZones.length > 0 ? 'bg-red-500 animate-ping' : 'bg-emerald-500')}`} />
           <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
             {scanLoading ? 'Zone Scanning...' : `Alert in ${dangerZones.length} Zones`}
-            
+
             {!scanLoading && (
               <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded text-[9px] min-w-[30px] text-center font-mono">
                 {formatTime(countdown)}
@@ -270,10 +298,10 @@ export default function MarineZoneMap() {
         <div className="pointer-events-auto">
           {!selectedData || selectedData.wave === null ? (
             <div className="bg-slate-950/95 border-2 border-slate-800 p-4 rounded-3xl text-white w-64 shadow-2xl backdrop-blur-sm">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Marine System</p>
-                <div className="text-center py-4 bg-slate-900/50 rounded-2xl border border-slate-800">
-                   <p className="text-[10px] font-bold text-slate-400 uppercase">Click on Sea or Zone</p>
-                </div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Marine System</p>
+              <div className="text-center py-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Click on Sea or Zone</p>
+              </div>
             </div>
           ) : (
             <div className="bg-slate-950/95 border-2 border-slate-800 p-5 rounded-3xl text-white w-64 shadow-2xl backdrop-blur-sm flex flex-col">
@@ -283,7 +311,7 @@ export default function MarineZoneMap() {
                   Force {selectedData.beaufort.force}
                 </span>
               </div>
-              
+
               <div className={`mb-4 py-2 px-3 rounded-xl text-center text-[10px] font-black uppercase tracking-tight border shadow-inner ${getStatusStyle(selectedData.beaufort.type)}`}>
                 {selectedLoading ? 'Analyzing...' : selectedData.beaufort.desc}
               </div>
@@ -298,7 +326,7 @@ export default function MarineZoneMap() {
                     <span className="text-[10px] font-bold text-slate-600 uppercase">m</span>
                   </div>
                 </div>
-                
+
                 <div>
                   <span className="text-[9px] text-slate-500 font-black uppercase block mb-1 tracking-widest">Wind Speed</span>
                   <div className="flex items-baseline gap-2">

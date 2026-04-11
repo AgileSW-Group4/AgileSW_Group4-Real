@@ -2,8 +2,7 @@
 
 import React, { createContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
 
-
-interface Incident {
+export interface Incident {
   id: string;
   title: string;
   description: string;
@@ -19,10 +18,9 @@ interface Incident {
 
 // Define the shape of the Context
 interface MarineContextType {
-
-  useIncident: Incident[];
+  useIncident: Incident[];          // currently displayed (possibly filtered)
   setIncident: Dispatch<SetStateAction<Incident[]>>;
-
+  allIncidents: Incident[];         // full unfiltered master list
 }
 
 
@@ -41,36 +39,35 @@ interface Props {
 
 export const MarineContextProvider = ({ children }: Props) => {
   const [useIncident, setIncident] = useState<Incident[]>([]);
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
 
   const value: MarineContextType = {
-    useIncident, setIncident
-  }
+    useIncident, setIncident, allIncidents
+  };
 
   const Get_Incident = async () => {
     try {
-      const res = await fetch('/api/getIncident', {
+      const res = await fetch('/api/Incident', {
         method: 'GET',
       });
       const json = await res.json();
       if (res.ok && json.success) {
         console.log("Fetch Incident Success:", json.data);
         setIncident(json.data);
+        setAllIncidents(json.data);  // keep master copy for filtering
       } else {
         console.log("Fetch Incident failed:", json);
         setIncident([]);
+        setAllIncidents([]);
       }
     } catch (error) {
       console.log("Fail to Fetch Incidents:", error);
-    };
-  }
+    }
+  };
 
   useEffect(() => {
-
     Get_Incident();
-    console.log(useIncident);
-
   }, []);
-
 
   return (
     <MarineContext.Provider value={value}>

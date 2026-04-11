@@ -33,7 +33,7 @@ export default function ReportsPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/incidents")
+    fetch("/api/Incident")
       .then((res) => res.json())
       .then((json) => setIncidents(json.data || []));
   }, []);
@@ -107,8 +107,8 @@ export default function ReportsPage() {
             <p>${inc.description || "ไม่มีรายละเอียดเพิ่มเติม"}</p>
           </div>
           ${inc.image_url && !/\.(mp4|mov|webm|avi)(\?|$)/i.test(inc.image_url)
-            ? `<div class="section"><div class="label">Evidence</div><img src="${inc.image_url}" /></div>`
-            : ""}
+        ? `<div class="section"><div class="label">Evidence</div><img src="${inc.image_url}" /></div>`
+        : ""}
           <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
         </body>
       </html>
@@ -214,47 +214,47 @@ export default function ReportsPage() {
 
                   {/* Description Expand */}
                   {isExpanded && (
-                  <div className="px-6 pb-10 border-t border-slate-100 pt-6 bg-slate-50/30 rounded-b-2xl">
-                    
-                    <div className="mb-6">
-                      <h4 className="text-[10px] uppercase font-bold text-slate-400 mb-3 tracking-[0.2em]">
-                        Detailed Information
-                      </h4>
-                      <p className="text-base text-slate-600 leading-relaxed font-medium">
-                        {inc.description || "ไม่มีรายละเอียดเพิ่มเติม"}
-                      </p>
+                    <div className="px-6 pb-10 border-t border-slate-100 pt-6 bg-slate-50/30 rounded-b-2xl">
+
+                      <div className="mb-6">
+                        <h4 className="text-[10px] uppercase font-bold text-slate-400 mb-3 tracking-[0.2em]">
+                          Detailed Information
+                        </h4>
+                        <p className="text-base text-slate-600 leading-relaxed font-medium">
+                          {inc.description || "ไม่มีรายละเอียดเพิ่มเติม"}
+                        </p>
+                      </div>
+
+                      <div className="border-t border-slate-200 mb-6" />
+
+                      <div className="flex justify-center pb-2">
+                        {inc.image_url ? (
+                          <div className="relative group max-w-sm w-full overflow-hidden rounded-2xl border-4 border-white shadow-lg shadow-slate-200/50 transition-all hover:shadow-xl p-2 bg-white">
+                            {/\.(mp4|mov|webm|avi)(\?|$)/i.test(inc.image_url) ? (
+                              <video
+                                src={inc.image_url}
+                                controls
+                                className="w-full h-64 object-cover rounded-xl"
+                              />
+                            ) : (
+                              <img
+                                src={inc.image_url}
+                                alt="Incident Evidence"
+                                className="w-full h-64 object-cover rounded-xl hover:scale-105 transition-transform duration-700 cursor-pointer"
+                                onClick={() => window.open(inc.image_url, '_blank')}
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none rounded-2xl" />
+                          </div>
+                        ) : (
+                          <div className="max-w-sm w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                            <span className="text-xs font-semibold italic">No Evidence Image</span>
+                          </div>
+                        )}
+                      </div>
+
                     </div>
-
-                    <div className="border-t border-slate-200 mb-6" />
-
-                    <div className="flex justify-center pb-2">
-                      {inc.image_url ? (
-                        <div className="relative group max-w-sm w-full overflow-hidden rounded-2xl border-4 border-white shadow-lg shadow-slate-200/50 transition-all hover:shadow-xl p-2 bg-white">
-                          {/\.(mp4|mov|webm|avi)(\?|$)/i.test(inc.image_url) ? (
-                            <video
-                              src={inc.image_url}
-                              controls
-                              className="w-full h-64 object-cover rounded-xl"
-                            />
-                          ) : (
-                            <img 
-                              src={inc.image_url} 
-                              alt="Incident Evidence" 
-                              className="w-full h-64 object-cover rounded-xl hover:scale-105 transition-transform duration-700 cursor-pointer"
-                              onClick={() => window.open(inc.image_url, '_blank')}
-                            />
-                          )}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none rounded-2xl" />
-                        </div>
-                      ) : (
-                        <div className="max-w-sm w-full h-40 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                          <span className="text-xs font-semibold italic">No Evidence Image</span>
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                )}
+                  )}
                 </div>
               );
             })}
