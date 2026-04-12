@@ -13,6 +13,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import ShipMarker, { type Ship } from "@/components/ShipMarker";
+import OfficerMarker, { type Officer } from "@/components/OfficerMarker";
 
 const WEATHER_API_KEY = "1726832e4269c6175ac3226ab85e71c3";
 
@@ -60,7 +61,7 @@ function MapEvents({
   return null;
 }
 
-export default function MarineZoneMap({ ships = [] }: { ships: Ship[] }) {
+export default function MarineZoneMap({ ships, officers }: { ships: Ship[], officers: Officer[] }) {
   const [selectedCoords, setSelectedCoords] = useState({ lat: 12.9, lng: 100.4 });
   const [hoverCoords, setHoverCoords] = useState<{lat: number, lng: number} | null>(null);
   const [selectedData, setSelectedData] = useState<any>(null);
@@ -235,6 +236,9 @@ export default function MarineZoneMap({ ships = [] }: { ships: Ship[] }) {
         ))}
         {ships.map((ship) => (
                   <ShipMarker key={ship.id} ship={ship} />
+        ))}
+        {officers.map((officer) => (
+          <OfficerMarker key={officer.officer_id} officer={officer} />
         ))}
       </MapContainer>
 
