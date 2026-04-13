@@ -82,7 +82,7 @@ export default function Home() {
 
       {/* Main Content: พื้นที่ที่เหลือจาก Navbar จะถูกเติมเต็มด้วยแผนที่ */}
       <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar />
+        <Sidebar ships={ships} />
         <MarineMap officers={officers} ships={ships} />
 
       </div>

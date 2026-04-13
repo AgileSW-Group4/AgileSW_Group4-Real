@@ -1,5 +1,8 @@
+"use client";
+
 import { Ship, AlertTriangle, CloudRain, Clock } from "lucide-react";
 import { useMarineContext } from "@/app/context/marineContext";
+import { Ship as ShipType } from "@/components/ShipMarker";
 
 interface Incident {
     id: string;
@@ -13,6 +16,10 @@ interface Incident {
     vdo_url: string;
     created_at: string;
     updated_at: string;
+}
+
+interface Props {
+    ships: ShipType[];
 }
 
 // Map risk_level (1–5) to border color, dot color, badge style, and label
@@ -36,7 +43,8 @@ function formatTime(iso: string): string {
     }
 }
 
-export function Sidebar() {
+export function Sidebar({ ships = [] }: Props) {
+
     const { useIncident } = useMarineContext();
 
     return (
@@ -47,7 +55,7 @@ export function Sidebar() {
                 <div className="flex-1 bg-blue-500 rounded-lg p-3 text-white shadow-sm flex flex-col relative overflow-hidden">
                     <div className="flex justify-between items-start z-10 mb-2">
                         <Ship className="w-5 h-5 opacity-90" />
-                        <span className="text-2xl font-bold leading-none">–</span>
+                        <span className="text-2xl font-bold leading-none">{ships.filter(s => s.status === "ACTIVE").length}</span>
                     </div>
                     <span className="text-xs font-medium z-10">Active Ships</span>
                     <div className="absolute -bottom-4 -right-2 text-white/20">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Anchor, Eye, EyeOff } from "lucide-react";
+import { useMarineContext } from "../context/marineContext";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { userData, setUserData } = useMarineContext();
 
   useEffect(() => {
     setMounted(true);
@@ -33,21 +35,29 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Simulate auth check (replace with real API call as needed)
-    await new Promise((r) => setTimeout(r, 900));
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: username.trim(), password }),
+      });
 
-    // Demo credentials — replace with real API call
-    const validUsers: Record<string, string> = {
-      admin: "admin123",
-      officer: "officer123",
-      captain: "captain123",
-    };
+      const data = await res.json();
 
-    if (validUsers[username.toLowerCase()] === password) {
-      sessionStorage.setItem("marineford_user", username.toLowerCase());
+      if (!res.ok) {
+        setError(data.error || "Invalid username or password. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store the logged-in user and redirect to home
+      sessionStorage.setItem("marineford_user", data.user?.email ?? username.toLowerCase());
+      console.log(data);
+      setUserData(data.user);
+      console.log("UserData###########", userData);
       router.replace("/");
-    } else {
-      setError("Invalid username or password. Please try again.");
+    } catch {
+      setError("Network error. Please try again.");
       setIsLoading(false);
     }
   };
