@@ -1,17 +1,16 @@
 "use client";
 
-import { Anchor, User, Plus, FileText, ClipboardList } from "lucide-react";
+import { Anchor, User, Plus, FileText, ClipboardList, Ship, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
     const router = useRouter();
 
-    // Standard button style
     const btnStyle = "flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border border-white/20 shadow-sm active:scale-95";
 
     return (
         <header className="h-14 bg-[#1e40af] text-white flex items-center px-6 shrink-0 justify-between shadow-md z-20 relative">
-            {/* Left Section: Logo & System Name */}
+            {/* Left: Logo & System Name */}
             <div className="flex items-center gap-4">
                 <div
                     className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
@@ -27,11 +26,17 @@ export function Navbar() {
                 </h1>
             </div>
 
-            {/* Middle/Right Section: 3 Identical Buttons */}
+            {/* Right: Buttons + Profile */}
             <div className="flex items-center gap-2">
                 <button onClick={() => router.push("/")} className={btnStyle}>
                     <Plus className="w-3.5 h-3.5" />
                     <span>New Incident</span>
+                </button>
+
+                {/* ✅ Boat Status */}
+                <button onClick={() => router.push("/boat-status")} className={btnStyle}>
+                    <Ship className="w-3.5 h-3.5" />
+                    <span>Boat Status</span>
                 </button>
 
                 <button onClick={() => router.push("/create")} className={btnStyle}>
@@ -44,7 +49,13 @@ export function Navbar() {
                     <span>View Logs</span>
                 </button>
 
-                {/* Profile Section: Name and Unit are back! */}
+                {/* ✅ Personnel */}
+                <button onClick={() => router.push("/personnel")} className={btnStyle}>
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Personnel</span>
+                </button>
+
+                {/* Profile */}
                 <div className="flex items-center gap-3 ml-2 border-l border-white/20 pl-4">
                     <div className="text-right flex flex-col justify-center">
                         <p className="text-[11px] font-bold leading-tight uppercase tracking-wider">Commander</p>
