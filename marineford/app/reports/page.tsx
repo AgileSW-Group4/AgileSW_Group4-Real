@@ -41,12 +41,14 @@ export default function ReportsPage() {
   const filtered = incidents.filter((inc) =>
     inc.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     inc.responsible_unit.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inc.title.toLowerCase().includes(searchTerm.toLowerCase())
+    inc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inc.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inc.risk_level.toString().includes(searchTerm.toLowerCase()) 
   )
 
 
   const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/incidents?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/Incident?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setIncidents((prev) => prev.filter((inc) => inc.id !== id));
     }
