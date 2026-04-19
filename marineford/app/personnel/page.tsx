@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { MOCK_PERSONNEL } from "@/data/mockPersonnel";
+// import { MOCK_PERSONNEL } from "@/data/mockPersonnel";
+//import { MOCK_PERSONNEL } from "@api/officers/route.js";
 import {
   Users, UserCheck, Clock, UserX,
   Search, ChevronRight, MapPin
@@ -13,18 +14,30 @@ export default function PersonnelOverviewPage() {
   const router = useRouter();
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [personnelList, setPersonnelList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/officers")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setPersonnelList(json.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching personnel:", err));
+  }, []);  //ดึงข้อมูล
 
   const stats = {
-    total:   MOCK_PERSONNEL.length,
-    active:  MOCK_PERSONNEL.filter(p => p.status === "Active").length,
-    standby: MOCK_PERSONNEL.filter(p => p.status === "Standby").length,
-    leave:   MOCK_PERSONNEL.filter(p => p.status === "On Leave").length,
+    total:   personnelList.length,
+    active:  personnelList.filter(p => p.status === "Active").length,
+    standby: personnelList.filter(p => p.status === "Standby").length,
+    leave:   personnelList.filter(p => p.status === "On Leave").length,
   };
 
-  const filteredStaff = MOCK_PERSONNEL.filter(p => {
+  const filteredStaff = personnelList.filter(p => {
     const matchesSearch =
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.includes(searchTerm);
+      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.officer_id?.includes(searchTerm);
     const matchesStatus = filterStatus === "All" || p.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -93,8 +106,8 @@ export default function PersonnelOverviewPage() {
                 <tbody className="divide-y divide-slate-50">
                   {filteredStaff.map((person) => (
                     <tr
-                      key={person.id}
-                      onClick={() => router.push(`/personnel/${person.id}`)}
+                      key={person.officer_id}
+                      onClick={() => router.push(`/personnel/${person.officer_id}`)}
                       className="hover:bg-blue-50/40 transition-all cursor-pointer group"
                     >
                       <td className="px-8 py-5">
@@ -104,17 +117,17 @@ export default function PersonnelOverviewPage() {
                           </div>
                           <div>
                             <p className="font-bold text-slate-800 text-sm group-hover:text-[#1e40af] transition-colors">{person.name}</p>
-                            <p className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">{person.id} • {person.rank}</p>
+                            <p className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">{person.officer_id} • {person.rank}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-sm font-semibold text-slate-600">{person.unit}</p>
+                        <p className="text-sm font-semibold text-slate-600">{person.status}</p>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-blue-400" />
-                          {person.location}
+                          {person.status}
                         </div>
                       </td>
                       <td className="px-6 py-5">
