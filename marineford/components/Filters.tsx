@@ -14,9 +14,9 @@ const SEVERITY_MAP: Record<string, number[]> = {
 };
 
 const SHIP_STATUS_MAP: Record<string, string[]> = {
-  "All Status": [],
-  "Active":   ["Active"],   
-  "Inactive": ["Inactive"],
+    "All Status": [],
+    "Active": ["Active"],
+    "Inactive": ["Inactive"],
 };
 
 // ── date helpers ───────────  ───────────────────────────────────────────────────
@@ -45,9 +45,9 @@ function dateFilter(dateRange: string, created_at: string): boolean {
 }
 
 export function Filters() {
-    const { allIncidents, setIncident, allShips, setShip } = useMarineContext();
+    const { allIncidents, setIncident, allShips, setShip, } = useMarineContext();
 
-    const [shipStatus, setShipStatus] = useState("All Status"); 
+    const [shipStatus, setShipStatus] = useState("All Status");
     const [severity, setSeverity] = useState("All Severity");
     const [dateRange, setDateRange] = useState("All Time");
     const [refreshKey, setRefreshKey] = useState(0);
@@ -63,24 +63,17 @@ export function Filters() {
             return matchSeverity && matchDate;
         });
 
+
         setIncident(filtered);
     }, [allIncidents, severity, dateRange, refreshKey, setIncident]);
 
     // ── กรอง Ship ──────────────────────────────────────────────────────────────
     useEffect(() => {
-       const filtered = allShips.filter((ship) => {
-        if (shipStatus === "All Status") return true;
-        
-        const s = ship.status.trim().toUpperCase();
-
-        if (shipStatus === "Active") {
-        return ["Active"].includes(s);
-        }
-
-        if (shipStatus === "Inactive") {
-        return ["Inactive", "OFFLINE"].includes(s);
-        }
-    });
+        const status = SHIP_STATUS_MAP[shipStatus] ?? [];
+        const filtered = allShips.filter((ship) => {
+            if (status.length === 0) return true;
+            return status.includes(ship.status);
+        });
 
         setShip(filtered);
     }, [allShips, shipStatus, refreshKey, setShip]);
