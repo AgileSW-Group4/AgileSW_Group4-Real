@@ -53,7 +53,7 @@ export default function LoginPage() {
       // Store the logged-in user and redirect to home
       sessionStorage.setItem("marineford_user", data.user?.email ?? username.toLowerCase());
       console.log(data);
-      setUserData(data.user);
+      setUserData(data);
       console.log("UserData###########", userData);
       router.replace("/");
     } catch {

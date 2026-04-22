@@ -7,10 +7,10 @@ import { useMarineContext } from "@/app/context/marineContext";
 // ── risk_level → severity label mapping ──────────────────────────────────────
 const SEVERITY_MAP: Record<string, number[]> = {
     "All Severity": [],
-    "Critical": [3],       // create/page.tsx maps: normal=1, urgent=2, critical=3
-    "High": [4, 5],    // createIncident.tsx uses 1–5 scale
-    "Medium": [2, 3],
-    "Low": [1],
+    "High": [3],       // create/page.tsx maps: normal=1, urgent=2, critical=3
+    "Critical": [4, 5],    // createIncident.tsx uses 1–5 scale
+    "Medium": [2],
+    "Normal": [1],
 };
 
 // ── date helpers ──────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export function Filters() {
                                 <option>Critical</option>
                                 <option>High</option>
                                 <option>Medium</option>
-                                <option>Low</option>
+                                <option>Normal</option>
                             </select>
                             <ChevronIcon />
                         </div>
