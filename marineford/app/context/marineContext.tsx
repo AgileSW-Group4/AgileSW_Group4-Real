@@ -63,13 +63,25 @@ export interface UserData {
   weak_password: null | string;
 }
 
+export interface Ship {
+  id: string;
+  name: string;
+  status: "ACTIVE" | "IDLE" | "INACTIVE" | string;
+  latitude: number;
+  longitude: number;
+  lastUpdate: string;
+}
+
 
 // Define the shape of the Context
 interface MarineContextType {
-  useIncident: Incident[];          // currently displayed (possibly filtered)
+  useIncident: Incident[];
   setIncident: Dispatch<SetStateAction<Incident[]>>;
-  allIncidents: Incident[];         // full unfiltered master list
-  userData: UserData | null;        // logged-in user data
+  allIncidents: Incident[];
+  useShip: Ship[];              // currently displayed (possibly filtered)
+  setShip: Dispatch<SetStateAction<Ship[]>>;
+  allShips: Ship[];             // full unfiltered master list
+  userData: UserData | null;
   setUserData: Dispatch<SetStateAction<UserData | null>>;
 }
 
@@ -91,9 +103,15 @@ export const MarineContextProvider = ({ children }: Props) => {
   const [useIncident, setIncident] = useState<Incident[]>([]);
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [useShip, setShip] = useState<Ship[]>([]);
+  const [allShips, setAllShips] = useState<Ship[]>([]);
+  
+
 
   const value: MarineContextType = {
-    useIncident, setIncident, allIncidents, userData, setUserData
+    useIncident, setIncident, allIncidents,
+    useShip, setShip, allShips,
+    userData, setUserData,
   };
 
   const Get_Incident = async () => {
@@ -116,8 +134,26 @@ export const MarineContextProvider = ({ children }: Props) => {
     }
   };
 
+  const Get_Ship = async () => {
+  try {
+    const res = await fetch('/api/boats', { method: 'GET' });
+    const json = await res.json();
+    if (res.ok) {
+      setShip(json.data);
+      setAllShips(json.data);
+      console.log("Fail to Fetch allShips:", allShips);
+    } else {
+      setShip([]);
+      setAllShips([]);
+    }
+  } catch (error) {
+    console.log("Fail to Fetch Ships:", error);
+  }
+};
+
   useEffect(() => {
     Get_Incident();
+    Get_Ship();
   }, []);
 
   return (
@@ -125,4 +161,6 @@ export const MarineContextProvider = ({ children }: Props) => {
       {children}
     </MarineContext.Provider>
   );
+
+  
 };
