@@ -7,6 +7,8 @@ import { Filters } from "@/components/Filters";
 import { useEffect, useState } from "react";
 import type { Ship } from "@/components/ShipMarker";
 import { useRouter } from "next/navigation";
+import { useMarineContext } from "@/app/context/marineContext";
+
 
 // โหลด MarineMap แบบ Dynamic (ไม่รันบน Server)
 const MarineMap = dynamic<{ officers: any[]; ships: Ship[] }>(() => import("@/components/MarineMap"), {
@@ -33,6 +35,8 @@ export default function Home() {
   const [ships, setShips] = useState<Ship[]>([]);
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  const { allIncidents, setIncident, allShips, setShip, useShip } = useMarineContext();
+
 
   useEffect(() => {
     // Auth guard — redirect to login if not authenticated
@@ -82,8 +86,8 @@ export default function Home() {
 
       {/* Main Content: พื้นที่ที่เหลือจาก Navbar จะถูกเติมเต็มด้วยแผนที่ */}
       <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar ships={ships} />
-        <MarineMap officers={officers} ships={ships} />
+        <Sidebar ships={useShip} />
+        <MarineMap officers={officers} ships={useShip} />
 
       </div>
     </div>

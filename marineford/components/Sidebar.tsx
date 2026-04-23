@@ -46,7 +46,7 @@ function formatTime(iso: string): string {
 export function Sidebar({ ships = [] }: Props) {
 
     const { useIncident } = useMarineContext();
-
+    const { allIncidents, setIncident, allShips, setShip, useShip } = useMarineContext();
     return (
         <aside className="w-80 bg-slate-50 border-r border-slate-200 overflow-y-auto p-4 flex flex-col gap-4 shadow-sm z-10">
 
@@ -55,11 +55,12 @@ export function Sidebar({ ships = [] }: Props) {
                 <div className="flex-1 bg-blue-500 rounded-lg p-3 text-white shadow-sm flex flex-col relative overflow-hidden">
                     <div className="flex justify-between items-start z-10 mb-2">
                         <Ship className="w-5 h-5 opacity-90" />
-                        <span className="text-2xl font-bold leading-none">{ships.filter(s => s.status === "ACTIVE").length}</span>
+                        <span className="text-2xl font-bold leading-none">{useShip.length}</span>
                     </div>
                     <span className="text-xs font-medium z-10">Active Ships</span>
                     <div className="absolute -bottom-4 -right-2 text-white/20">
                         <Ship className="w-16 h-16" strokeWidth={1.5} />
+
                     </div>
                 </div>
 

@@ -63,14 +63,30 @@ export interface UserData {
   weak_password: null | string;
 }
 
+interface Ship {
+  id: string;
+  name: string;
+  status: 'Active' | 'Inactive' | string;
+  status_info: string;
+  device_status: string;
+  fuel_level: number;
+  latitude: number;
+  longitude: number;
+  last_gps_update: string; 
+}
+
 
 // Define the shape of the Context
 interface MarineContextType {
-  useIncident: Incident[];          // currently displayed (possibly filtered)
+  useIncident: Incident[];
   setIncident: Dispatch<SetStateAction<Incident[]>>;
-  allIncidents: Incident[];         // full unfiltered master list
-  userData: UserData | null;        // logged-in user data
+  allIncidents: Incident[];
+  useShip: Ship[];              // currently displayed (possibly filtered)
+  setShip: Dispatch<SetStateAction<Ship[]>>;
+  allShips: Ship[];             // full unfiltered master list
+  userData: UserData | null;
   setUserData: Dispatch<SetStateAction<UserData | null>>;
+  setAllShips :  Dispatch<SetStateAction<Ship[]>>;
 }
 
 
@@ -91,9 +107,15 @@ export const MarineContextProvider = ({ children }: Props) => {
   const [useIncident, setIncident] = useState<Incident[]>([]);
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [useShip, setShip] = useState<Ship[]>([]);
+  const [allShips, setAllShips] = useState<Ship[]>([]);
+  
+
 
   const value: MarineContextType = {
-    useIncident, setIncident, allIncidents, userData, setUserData
+    useIncident, setIncident, allIncidents,
+    useShip, setShip, allShips,
+    userData, setUserData, setAllShips 
   };
 
   const Get_Incident = async () => {
@@ -102,10 +124,11 @@ export const MarineContextProvider = ({ children }: Props) => {
         method: 'GET',
       });
       const json = await res.json();
-      if (res.ok && json.success) {
+      if (res.ok) {
         console.log("Fetch Incident Success:", json.data);
         setIncident(json.data);
-        setAllIncidents(json.data);  // keep master copy for filtering
+        setAllIncidents(json.data); 
+        
       } else {
         console.log("Fetch Incident failed:", json);
         setIncident([]);
@@ -116,8 +139,22 @@ export const MarineContextProvider = ({ children }: Props) => {
     }
   };
 
+  const Get_Ship = async () => {
+  try {
+    const res = await fetch('/api/boats', { method: 'GET' });
+    const json = await res.json();
+    if (res.ok) {
+      setShip(json.data);
+      setAllShips(json.data);
+    } 
+  } catch (error) {
+    console.log("Fail to Fetch Ships:", error);
+  }
+};
+
   useEffect(() => {
     Get_Incident();
+    Get_Ship();
   }, []);
 
   return (
@@ -125,4 +162,6 @@ export const MarineContextProvider = ({ children }: Props) => {
       {children}
     </MarineContext.Provider>
   );
+
+  
 };

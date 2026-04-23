@@ -7,13 +7,19 @@ import { useMarineContext } from "@/app/context/marineContext";
 // ── risk_level → severity label mapping ──────────────────────────────────────
 const SEVERITY_MAP: Record<string, number[]> = {
     "All Severity": [],
-    "Critical": [3],       // create/page.tsx maps: normal=1, urgent=2, critical=3
-    "High": [4, 5],    // createIncident.tsx uses 1–5 scale
-    "Medium": [2, 3],
-    "Low": [1],
+    "High": [3],       // create/page.tsx maps: normal=1, urgent=2, critical=3
+    "Critical": [4, 5],    // createIncident.tsx uses 1–5 scale
+    "Medium": [2],
+    "Normal": [1],
 };
 
-// ── date helpers ──────────────────────────────────────────────────────────────
+const SHIP_STATUS_MAP: Record<string, string[]> = {
+    "All Status": [],
+    "Active": ["Active"],
+    "Inactive": ["Inactive"],
+};
+
+// ── date helpers ───────────  ───────────────────────────────────────────────────
 function startOfDay(d: Date) {
     const c = new Date(d);
     c.setHours(0, 0, 0, 0);
@@ -39,13 +45,15 @@ function dateFilter(dateRange: string, created_at: string): boolean {
 }
 
 export function Filters() {
-    const { allIncidents, setIncident } = useMarineContext();
+    const { allIncidents, setIncident, allShips, setShip, } = useMarineContext();
 
+    const [shipStatus, setShipStatus] = useState("All Status");
     const [severity, setSeverity] = useState("All Severity");
     const [dateRange, setDateRange] = useState("All Time");
     const [refreshKey, setRefreshKey] = useState(0);
 
     // Re‑apply filters whenever allIncidents, severity, or dateRange changes
+    // ── กรอง Incident ──────────────────────────────────────────────────────────
     useEffect(() => {
         const levels = SEVERITY_MAP[severity] ?? [];
 
@@ -55,8 +63,21 @@ export function Filters() {
             return matchSeverity && matchDate;
         });
 
+
         setIncident(filtered);
     }, [allIncidents, severity, dateRange, refreshKey, setIncident]);
+
+    // ── กรอง Ship ──────────────────────────────────────────────────────────────
+    useEffect(() => {
+        const status = SHIP_STATUS_MAP[shipStatus] ?? [];
+        const filtered = allShips.filter((ship) => {
+            if (status.length === 0) return true;
+            return status.includes(ship.status);
+        });
+
+        setShip(filtered);
+    }, [allShips, shipStatus, refreshKey, setShip]);
+
 
     const ChevronIcon = () => (
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
@@ -82,11 +103,14 @@ export function Filters() {
                             Ship Status
                         </label>
                         <div className="relative">
-                            <select className="w-full text-sm border border-slate-300 rounded-md pl-3 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                            <select
+                                value={shipStatus}
+                                onChange={(e) => setShipStatus(e.target.value)}
+                                className="w-full text-sm border border-slate-300 rounded-md pl-3 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                            >
                                 <option>All Status</option>
                                 <option>Active</option>
-                                <option>Docked</option>
-                                <option>Maintenance</option>
+                                <option>Inactive</option>
                             </select>
                             <ChevronIcon />
                         </div>
@@ -107,7 +131,7 @@ export function Filters() {
                                 <option>Critical</option>
                                 <option>High</option>
                                 <option>Medium</option>
-                                <option>Low</option>
+                                <option>Normal</option>
                             </select>
                             <ChevronIcon />
                         </div>

@@ -7,7 +7,7 @@ import L from "leaflet";
 export type Ship = {
   id: string;
   name: string;
-  status: "ACTIVE" | "IDLE" | "OFFLINE" | string;
+  status: "ACTIVE" | "IDLE" | "INACTIVE" | string;
          // knots
   latitude: number;
   longitude: number;
@@ -19,7 +19,7 @@ function statusColor(status: string): { bg: string; ring: string; text: string }
   switch (status.toUpperCase()) {
     case "ACTIVE":  return { bg: "#16a34a", ring: "#bbf7d0", text: "#15803d" };
     case "IDLE":    return { bg: "#2563eb", ring: "#bfdbfe", text: "#1d4ed8" };
-    case "OFFLINE": return { bg: "#6b7280", ring: "#e5e7eb", text: "#4b5563" };
+    case "INACTIVE": return { bg: "#6b7280", ring: "#e5e7eb", text: "#4b5563" };
     default:        return { bg: "#f59e0b", ring: "#fde68a", text: "#b45309" };
   }
 }
